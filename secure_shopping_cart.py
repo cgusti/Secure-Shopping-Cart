@@ -5,20 +5,61 @@ Date: 5/19/23
 """
 import copy
 import re
+from dataclasses import dataclass
 
-def is_sku_format(sku_code):
+#Tested - DONE
+def is_sku_format(sku_code): 
     """Helper function to validate if a string is in proper SKU format
-
     Args:
         sku_code (str): input sku code 
 
     Returns:
         Bool : whether or not input sku code is in the proper format or not
     """
+    if (type(sku_code)) != str:
+        raise TypeError('sku code needs to be a string')
+    if not len(sku_code):
+        raise ValueError('String is empty')
+    if sku_code.isspace():
+        raise ValueError('SKU cannot be an empty string')
     pattern = r'^[A-Z]{3}_[A-Z]{3}_\d{2}$'
     match = re.match(pattern, sku_code)
     return match is not None
 
+#Tested - DONE
+def validatedString(value, maxLength=100):
+    """
+    Helper function to validate that am input is within bounds and 
+    is of type string
+    Args: 
+        value (int)
+        maxLength (int)
+    Returns: 
+        int: 
+    """
+    if (type(value) != str): 
+        raise TypeError('Value must be a string')
+    if (len(value) > maxLength):
+        raise ValueError(f'Value must be no more than {maxLength} characters')
+    if value is None: 
+        raise TypeError('Need to input string')
+    return value
+
+#Tested - DONE
+def validateNumber(value, minVal=0.0, maxVal=100.0):
+    """
+    Helper function to validate that a number input is within bounds and 
+    is of type integer
+    """
+    if (type(value) != float):
+        raise TypeError('value of must be a number')
+    if (value < minVal): 
+        raise ValueError(f'Value must be at least {minVal}')
+    if (value > maxVal):
+        raise ValueError(f'Value must be at most ${maxVal}')
+    return value
+
+#Tested - DONE
 class SKU:
     """
     SKU containing SKU code (unique identifier for each item available at the store)
@@ -61,30 +102,9 @@ class Quantity:
         if (value <= 0): 
             raise ValueError('Quantity must be greater than 0')
         return value
-
-def validatedString(value, maxLength=1000):
-    """
-    Helper function to validate that am input is within bounds and 
-    is of type string
-    """
-    if (type(value) != str): 
-        raise TypeError('Value must be a string')
-    if (value.length > maxLength):
-        raise ValueError(f'Value must be no more than {maxLength} characters')
-    return value
-
-def validateNumber(value, minLen=1, maxLen=10):
-    """
-    Helper function to validate that a number input is within bounds and 
-    is of type integer
-    """
-    if (type(value) != int):
-        raise TypeError('value of must be a number')
-    if (value < minLen): 
-        raise ValueError(f'Value must be at least {minLen}')
-    if (value > maxLen):
-        raise ValueError(f'Value must be at most ${maxLen}')
-    return value
+    
+    def get_value(self):
+        return self.__value
 
 class Item: 
     """
@@ -101,20 +121,36 @@ class Item:
         return self.__description
     def get_price(self):
         return self.__price
+    
+@dataclass(frozen=True)
+class Catalog: 
+    items: dict
+    
+    def validatedHas(self, sku):
+        if sku not in self.items:
+            raise ValueError('Invalid SKU {sku}')
+
+#creating an instance of constant and immutable catalogy
+catalog = Catalog({
+    'Apples': Item("ABC_DEF_21",'one apple fruit', 0.5),
+    'Watermelon': Item("ZZZ_BOB_77",'one watermelon fruit', 10.0),
+    'Wagyu meat': Item("YYY_JIL_77",'100g of of USA Wagyu meat', 12.0),
+    'Oatly oat milk': Item("WWW_BIL_77",'1 carton of Oatly oat milk', 6.0),
+})
 
 class ShoppingCart:
-    def __init__(self, cart_id, customerId, items):
+    def __init__(self, cart_id, customerId):
         """
         Shopping cart class that is identified by a unique cart_id, customer_id 
         and contains items 
         Args:
             cart_id (str): unique cart identifier
             customerId (str): unique customer identifier
-            items (list): list of items currently in the shopping cart
+            items (dict): list of items currently in the shopping cart
         """
         self.__id = cart_id
         self.__customer_id = customerId
-        self.__items = items
+        self.__items = {}
         
     def get_id(self):
         return self.__id
@@ -125,11 +161,25 @@ class ShoppingCart:
     def get_items(self): #Must return a deep copy of items 
         return copy.deepcopy(self.__items)
     
-    def updateItemQuantity(sku, quantity):
-        pass
+    def add_items(self, sku, quantity):
+        SKU.validated(sku)
+        catalog.validatedHas(sku)
+        Quantity.validated(quantity)
+        self.__items.update(sku, quantity)
+        
+    def updateItemQuantity(self, sku, quantity):
+        SKU.validated(sku)
+        catalog.validatedHas(sku)
+        Quantity.validated(quantity)
+        self.__items.update({sku, quantity}) 
+        
+    def calculateTotalCost(self):
+        total = 0
+        for item, quantity in self.__items():
+            total += quantity.get_value()
+        return total
     
-
-    
+       
     
 
 
