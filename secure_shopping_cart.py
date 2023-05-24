@@ -6,6 +6,8 @@ Date: 5/19/23
 import copy
 import re
 from dataclasses import dataclass
+import uuid
+import types
 
 #Tested - DONE
 def is_sku_format(sku_code): 
@@ -24,6 +26,12 @@ def is_sku_format(sku_code):
         raise ValueError('SKU cannot be an empty string')
     pattern = r'^[A-Z]{3}_[A-Z]{3}_\d{2}$'
     match = re.match(pattern, sku_code)
+    return match is not None
+
+#Tested - DONE
+def is_cid_format(customer_id):
+    pattern = r'^[A-Z]{3}\d{5}[A-Z]{2}-[AQ]$'
+    match = re.match(pattern, customer_id)
     return match is not None
 
 #Tested - DONE
@@ -80,6 +88,7 @@ class SKU:
         """Return a printed string of sku code"""
         return f'SKU code: {self.__code}'
 
+#Tested - DONE 
 class Quantity:
     """
     Quantity class that to signify how much of an item is contained in the shopping cart
@@ -106,6 +115,7 @@ class Quantity:
     def get_value(self):
         return self.__value
 
+#Tested - DONE
 class Item: 
     """
     Item class that consists of a unique SKU identifier, description of the
@@ -121,26 +131,42 @@ class Item:
         return self.__description
     def get_price(self):
         return self.__price
+
+#Tested - DONE
+class CustomerId: 
+    def __init__(self, value):
+        self.__value = CustomerId.validated(value)
+    @staticmethod
+    def validated(value):
+        if type(value) != str: 
+            raise TypeError('Customer ID must be a string')
+        if not is_cid_format(value):
+            raise ValueError('Customer ID is in the wrong format')
+        return value
     
+#Tested - DONE
 @dataclass(frozen=True)
 class Catalog: 
-    items: dict
+    items: types.MappingProxyType
     
     def validatedHas(self, sku):
         if sku not in self.items:
             raise ValueError('Invalid SKU {sku}')
 
-#creating an instance of constant and immutable catalogy
-catalog = Catalog({
+#creating an instance of constant and immutable catalog. It is important to note 
+#here that even though the Catalog class is marked as frozen=True, but the items attribute is a dictionary. 
+# While the Catalog instance itself is immutable, the dictionary object it contains can still be modified
+catalog = Catalog(types.MappingProxyType({
     'ABC_DEF_21': Item('ABC_DEF_21','one apple fruit', 0.5),
     'ZZZ_BOB_77': Item('ZZZ_BOB_77','one watermelon fruit', 10.0),
     'YYY_JIL_77': Item('YYY_JIL_77','100g of of USA Wagyu meat', 12.0),
     'WWW_BIL_77': Item('WWW_BIL_77','1 carton of Oatly oat milk', 6.0),
-})
+}))
 
-@dataclass(freeze=True)
+#TESTED - DONE
+@dataclass(frozen=True)
 class Inventory:
-    items: dict
+    items: types.MappingProxyType
     
     def validateHas(self, sku, desiredQuantity):
         #check if sku exists 
@@ -150,15 +176,15 @@ class Inventory:
         if self.items[sku] < desiredQuantity: 
             raise ValueError(f'Not enough inventory for SKU: {sku}')
 
-inventory = Inventory({
+inventory = Inventory(types.MappingProxyType({
     'ABC_DEF_21': 100,
     'ZZZ_BOB_77': 200,
     'YYY_JIL_77': 300,
     'WWW_BIL_77': 400,
-})
+}))
 
 class ShoppingCart:
-    def __init__(self, cart_id, customerId):
+    def __init__(self, customerId):
         """
         Shopping cart class that is identified by a unique cart_id, customer_id 
         and contains items 
@@ -167,8 +193,8 @@ class ShoppingCart:
             customerId (str): unique customer identifier
             items (dict): sku - quantity (key - value)
         """
-        self.__id = cart_id
-        self.__customer_id = customerId
+        self.__id = uuid()
+        self.__customer_id = CustomerId.validated(customerId)
         self.__items = {}
         
     def get_id(self):
@@ -190,8 +216,9 @@ class ShoppingCart:
         #to the cart. 
         #A final check will be made the the checkout time, so this is ok for now
         inventory.validateHas(sku, quantity)
+        #check if item already exists in cart
         if sku in self.__items:
-            self.__items[sku] += quantity #check if item already exists in cart
+            self.__items[sku] += quantity 
         else: 
             self.__items[sku] = quantity
         
@@ -214,4 +241,6 @@ class ShoppingCart:
        
     
 
-
+# if __name__ == '__main__':
+#     catalog.items['ABC_DEF_21'] = Item('ABC_DEF_21', 'modified apple', 1.0)  # Raises AttributeError
+#     print(catalog.items['ABC_DEF_21'].get_description())

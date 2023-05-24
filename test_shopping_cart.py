@@ -4,7 +4,7 @@ import pytest
 
 """Testing utility functions""" 
 
-#Testing sku checker
+#Testing sku checker function
 def test_is_sku_format_valid():
     # Valid SKU format
     assert is_sku_format("ABC_DEF_21") == True
@@ -37,6 +37,22 @@ def test_is_sku_format_whitespace():
     with pytest.raises(ValueError):
         is_sku_format("    ")
 
+#Testing customer id format checker function 
+# # Valid CID format examples
+# valid_cids = ['ABC12345DE-A', 'XYZ98765FG-Q']
+
+# Invalid CID format examples
+# invalid_cids = ['AB123456DE-A', 'ABC12345DE-F', 'XYZ98765FG-AQ', '12345DE-A', 'ABC12345DE-1']
+
+def test_valid_cids():
+    valid_cids = ['ABC12345DE-A', 'XYZ98765FG-Q']
+    for cid in valid_cids:
+        assert is_cid_format(cid) == True
+
+def test_invalid_cids():
+    invalid_cids = ['AB123456DE-A', 'ABC12345DE-F', 'XYZ98765FG-AQ', '12345DE-A', 'ABC12345DE-1']
+    for cid in invalid_cids:
+        assert is_cid_format(cid) == False
 
 #Testing string checker function
 def test_validatedString_valid():
@@ -166,41 +182,72 @@ def test_SKU_private_attributes():
     with pytest.raises(AttributeError):
         item.__price
         
-#Testing Catalog class 
-@dataclass(frozen=True)
-class CatalogTest:
-    items: dict
+#Testing CustomerID class
+def test_valid_cids():
+    valid_cids = ['ABC12345DE-A', 'XYZ98765FG-Q']
+    for cid in valid_cids:
+        customer_id = CustomerId(cid)
+        assert customer_id._CustomerId__value == cid
 
-def test_Catalog_valid():
-    # Valid catalog
-    catalog = CatalogTest({
-        'Apples': Item("ABC_DEF_21", 'one apple fruit', 0.5),
-        'Watermelon': Item("ZZZ_BOB_77", 'one watermelon fruit', 10.0),
-        'Wagyu meat': Item("YYY_JIL_77", '100g of USA Wagyu meat', 12.0),
-        'Oatly oat milk': Item("WWW_BIL_77", '1 carton of Oatly oat milk', 6.0),
-    })
-    assert len(catalog.items) == 4
+def test_invalid_cids():
+    invalid_cids = ['AB123456DE-A', 'ABC12345DE-F', 'XYZ98765FG-AQ', '12345DE-A', 'ABC12345DE-1']
+    for cid in invalid_cids:
+        with pytest.raises(ValueError):
+            CustomerId(cid)
 
-def test_Catalog_invalid_sku():
-    # Invalid SKU
-    with pytest.raises(ValueError):
-        CatalogTest({
-            'Apples': Item("ABC_DEF_21", 'one apple fruit', 0.5),
-            'Watermelon': Item("ZZZ_BOB_77", 'one watermelon fruit', 10.0),
-            'Wagyu meat': Item("INVALID_SKU", '100g of USA Wagyu meat', 12.0),
-            'Oatly oat milk': Item("WWW_BIL_77", '1 carton of Oatly oat milk', 6.0),
-        })
-
-def test_Catalog_immutable():
-    # Creating an instance of Catalog
-    items = {
-        'Apples': Item("ABC_DEF_21", 'one apple fruit', 0.5),
-        'Watermelon': Item("ZZZ_BOB_77", 'one watermelon fruit', 10.0),
-    }
-    catalog = CatalogTest(items)
-
-    # Attempting to modify the items dictionary
+def test_non_string_value():
     with pytest.raises(TypeError):
-        catalog.items['Oranges'] = Item("XXX_ROB_77", 'one orange fruit', 2.0)
+        CustomerId(12345)
         
-        
+#Testing catalog class 
+def test_valid_sku_from_catalog():
+    sku = 'ABC_DEF_21'
+    assert catalog.validatedHas(sku) is None
+
+def test_invalid_sku():
+    sku = 'INVALID_SKU'
+    with pytest.raises(ValueError):
+        catalog.validatedHas(sku)
+
+def test_immutable_catalog():
+    with pytest.raises(TypeError): #'mappingproxy' object does not support item assignment
+        catalog.items['ABC_DEF_21'] = Item('ABC_DEF_21','modified apple', 1.0)
+    
+    with pytest.raises(AttributeError):
+        catalog.items.pop('ABC_DEF_21')
+
+    with pytest.raises(AttributeError):
+        catalog.items.clear()
+
+#Testing Inventory class 
+def test_validate_has():
+    # Test for valid SKU and sufficient inventory
+    inventory.validateHas('ABC_DEF_21', 50)  # No exception should be raised
+
+    # Test for invalid SKU
+    with pytest.raises(ValueError):
+        inventory.validateHas('INVALID_SKU', 50)  # Should raise ValueError
+
+    # Test for insufficient inventory
+    with pytest.raises(ValueError):
+        inventory.validateHas('ZZZ_BOB_77', 250)  # Should raise ValueError
+
+def test_immutable_inventory():
+    # Attempt to modify the items dictionary
+    with pytest.raises(TypeError):
+        inventory.items['ABC_DEF_21'] = 50  
+
+    with pytest.raises(TypeError):
+        del inventory.items['ABC_DEF_21']  
+
+    with pytest.raises(AttributeError):
+        inventory.items.clear()  
+
+    with pytest.raises(AttributeError):
+        inventory.items.update({'ZZZ_BOB_77': 250})  # Should raise AttributeError
+
+    with pytest.raises(AttributeError):
+        inventory.items.pop('ABC_DEF_21')  # Should raise AttributeError
+
+    with pytest.raises(AttributeError):
+        inventory.items.popitem()  # Should raise AttributeError
