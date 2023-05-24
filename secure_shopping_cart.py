@@ -132,10 +132,29 @@ class Catalog:
 
 #creating an instance of constant and immutable catalogy
 catalog = Catalog({
-    'Apples': Item("ABC_DEF_21",'one apple fruit', 0.5),
-    'Watermelon': Item("ZZZ_BOB_77",'one watermelon fruit', 10.0),
-    'Wagyu meat': Item("YYY_JIL_77",'100g of of USA Wagyu meat', 12.0),
-    'Oatly oat milk': Item("WWW_BIL_77",'1 carton of Oatly oat milk', 6.0),
+    'ABC_DEF_21': Item('ABC_DEF_21','one apple fruit', 0.5),
+    'ZZZ_BOB_77': Item('ZZZ_BOB_77','one watermelon fruit', 10.0),
+    'YYY_JIL_77': Item('YYY_JIL_77','100g of of USA Wagyu meat', 12.0),
+    'WWW_BIL_77': Item('WWW_BIL_77','1 carton of Oatly oat milk', 6.0),
+})
+
+@dataclass(freeze=True)
+class Inventory:
+    items: dict
+    
+    def validateHas(self, sku, desiredQuantity):
+        #check if sku exists 
+        if sku not in self.items:
+            raise ValueError(f'Invalid SKU: {sku}')
+        #check if there is enough inventory
+        if self.items[sku] < desiredQuantity: 
+            raise ValueError(f'Not enough inventory for SKU: {sku}')
+
+inventory = Inventory({
+    'ABC_DEF_21': 100,
+    'ZZZ_BOB_77': 200,
+    'YYY_JIL_77': 300,
+    'WWW_BIL_77': 400,
 })
 
 class ShoppingCart:
@@ -146,7 +165,7 @@ class ShoppingCart:
         Args:
             cart_id (str): unique cart identifier
             customerId (str): unique customer identifier
-            items (dict): list of items currently in the shopping cart
+            items (dict): sku - quantity (key - value)
         """
         self.__id = cart_id
         self.__customer_id = customerId
@@ -158,20 +177,33 @@ class ShoppingCart:
     def get_customer_id(self):
         return self.__customer_id
     
-    def get_items(self): #Must return a deep copy of items 
+    def get_items(self): #Must return a deep copy of items because item attribute is mutable
         return copy.deepcopy(self.__items)
     
     def add_items(self, sku, quantity):
         SKU.validated(sku)
         catalog.validatedHas(sku)
         Quantity.validated(quantity)
-        self.__items.update(sku, quantity)
+        #Quick check that we have enough inventory; however, since we 
+        #don't have a transactional boundary here, we can't guarantee that the 
+        #inventor wont' change between this check and the time we actually add the items
+        #to the cart. 
+        #A final check will be made the the checkout time, so this is ok for now
+        inventory.validateHas(sku, quantity)
+        if sku in self.__items:
+            self.__items[sku] += quantity #check if item already exists in cart
+        else: 
+            self.__items[sku] = quantity
         
     def updateItemQuantity(self, sku, quantity):
         SKU.validated(sku)
         catalog.validatedHas(sku)
         Quantity.validated(quantity)
         self.__items.update({sku, quantity}) 
+    
+    def removeItem(self, sku):
+        SKU.validated(sku)
+        del self.__items[sku]
         
     def calculateTotalCost(self):
         total = 0
