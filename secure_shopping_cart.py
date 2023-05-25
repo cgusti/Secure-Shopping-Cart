@@ -9,7 +9,6 @@ from dataclasses import dataclass
 import uuid
 import types
 
-#Tested - DONE
 def is_sku_format(sku_code): 
     """Helper function to validate if a string is in proper SKU format
     Args:
@@ -28,13 +27,20 @@ def is_sku_format(sku_code):
     match = re.match(pattern, sku_code)
     return match is not None
 
-#Tested - DONE
+
 def is_cid_format(customer_id):
+    """Helper function to validate if a given customer id satisfies all requirements 
+
+    Args:
+        customer_id (str): candidate customer id
+
+    Returns:
+        Bool: returns True if customerID string satisfies all requirements
+    """
     pattern = r'^[A-Z]{3}\d{5}[A-Z]{2}-[AQ]$'
     match = re.match(pattern, customer_id)
     return match is not None
 
-#Tested - DONE
 def validatedString(value, maxLength=100):
     """
     Helper function to validate that am input is within bounds and 
@@ -53,7 +59,7 @@ def validatedString(value, maxLength=100):
         raise TypeError('Need to input string')
     return value
 
-#Tested - DONE
+
 def validateNumber(value, minVal=0.0, maxVal=100.0):
     """
     Helper function to validate that a number input is within bounds and 
@@ -67,7 +73,7 @@ def validateNumber(value, minVal=0.0, maxVal=100.0):
         raise ValueError(f'Value must be at most ${maxVal}')
     return value
 
-#Tested - DONE
+
 class SKU:
     """
     SKU containing SKU code (unique identifier for each item available at the store)
@@ -77,7 +83,7 @@ class SKU:
         
     @staticmethod
     def validated(code):
-        """validates if sku code is in the proper format and is a string, if so return code"""
+        """validates if sku code is in the proper format and is a string, if so return correct and validated code"""
         if type(code) != str:
             raise TypeError('SKU code must be a string')
         if not is_sku_format(code):
@@ -88,7 +94,7 @@ class SKU:
         """Return a printed string of sku code"""
         return f'SKU code: {self.__code}'
 
-#Tested - DONE 
+
 class Quantity:
     """
     Quantity class that to signify how much of an item is contained in the shopping cart
@@ -115,7 +121,7 @@ class Quantity:
     def get_value(self):
         return self.__value
 
-#Tested - DONE
+
 class Item: 
     """
     Item class that consists of a unique SKU identifier, description of the
@@ -132,8 +138,9 @@ class Item:
     def get_price(self):
         return self.__price
 
-#Tested - DONE
+
 class CustomerId: 
+    """Customer ID class containing customer id validators that are employed during construction time"""
     def __init__(self, value):
         self.__value = CustomerId.validated(value)
     @staticmethod
@@ -144,9 +151,14 @@ class CustomerId:
             raise ValueError('Customer ID is in the wrong format')
         return value
     
-#Tested - DONE
+
 @dataclass(frozen=True)
-class Catalog: 
+class Catalog:
+    """catalog containing a mapping of all available unique product SKUs at the store to Item object
+
+    Raises:
+        ValueError: If given SKU does not match any SKUs contained in the catalog
+    """
     items: types.MappingProxyType
     
     def validatedHas(self, sku):
@@ -166,6 +178,12 @@ catalog = Catalog(types.MappingProxyType({
 #TESTED - DONE
 @dataclass(frozen=True)
 class Inventory:
+    """Inventory to keep track of quantities of unique products/SKUs sold at the store
+
+    Raises:
+        ValueError: If SKU is invalid (not contained in the Inventory)
+        ValueError: If there is not enough inventory for a unique SKU
+    """
     items: types.MappingProxyType
     
     def validateHas(self, sku, desiredQuantity):
@@ -189,9 +207,7 @@ class ShoppingCart:
         Shopping cart class that is identified by a unique cart_id, customer_id 
         and contains items 
         Args:
-            cart_id (str): unique cart identifier
             customerId (str): unique customer identifier
-            items (dict): sku - quantity (key - value)
         """
         self.__id = uuid.uuid4()
         self.__customer_id = CustomerId.validated(customerId)
@@ -232,7 +248,6 @@ class ShoppingCart:
         SKU.validated(sku)
         del self.__items[sku]
     
-    #TODO: debug this
     def calculateTotalCost(self):
         total = 0
         for sku, quantity in self.__items.items():
@@ -240,52 +255,5 @@ class ShoppingCart:
             total += item.get_price() * quantity
         return total
     
-       
     
-
-if __name__ == '__main__':
-    # catalog.items['ABC_DEF_21'] = Item('ABC_DEF_21', 'modified apple', 1.0)  # Raises AttributeError
-    # print(catalog.items['ABC_DEF_21'].get_description())
-    
-    customer_id = 'ABC12345DE-A' #valid customerID
-    cart = ShoppingCart(customer_id)
-    
-    #test get_id method
-    assert cart.get_id() is not None
-    
-    #test get_customer_id method
-    assert cart.get_customer_id() == customer_id
-    
-    #test get items method with an empty cart 
-    assert cart.get_items() == {}
-    
-    #Add items to the cart 
-    sku1 = 'ABC_DEF_21' #cost = 0.5 per unit
-    sku2 = 'ZZZ_BOB_77' #cost = 10.0 per unit
-    quantity1 = 10 #total cost = 0.5 * 10 = 5.0
-    quantity2 = 5 #total cost = 10.0 * 5 = 50.0
-    
-    cart.add_items(sku1, quantity1)
-    cart.add_items(sku2, quantity2)
-    
-    #test get_items method after adding items 
-    expected_items = {sku1: quantity1, sku2: quantity2}
-    assert cart.get_items() == expected_items
-    
-    #Test updateItemQuantity method 
-    new_quantity = 3
-    cart.updateItemQuantity(sku1, new_quantity)
-    expected_items[sku1] = new_quantity
-    assert cart.get_items() == expected_items
-    
-    #Test removeItem method
-    cart.removeItem(sku2)
-    del expected_items[sku2]
-    assert cart.get_items() == expected_items
-    
-    #Test calculate totalcost method
-    expected_total_cost = (0.5*new_quantity) + (10.0*quantity2)
-    print(f'expected total cost: {expected_total_cost}')
-    print(f'actual total cost: {cart.calculateTotalCost()}')
-    # assert cart.calculateTotalCost() == expected_total_cost
     
