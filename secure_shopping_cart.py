@@ -193,7 +193,7 @@ class ShoppingCart:
             customerId (str): unique customer identifier
             items (dict): sku - quantity (key - value)
         """
-        self.__id = uuid()
+        self.__id = uuid.uuid4()
         self.__customer_id = CustomerId.validated(customerId)
         self.__items = {}
         
@@ -226,21 +226,66 @@ class ShoppingCart:
         SKU.validated(sku)
         catalog.validatedHas(sku)
         Quantity.validated(quantity)
-        self.__items.update({sku, quantity}) 
+        self.__items.update({sku : quantity}) 
     
     def removeItem(self, sku):
         SKU.validated(sku)
         del self.__items[sku]
-        
+    
+    #TODO: debug this
     def calculateTotalCost(self):
         total = 0
-        for item, quantity in self.__items():
-            total += quantity.get_value()
+        for sku, quantity in self.__items.items():
+            item = catalog.items.get(sku) #take not that a MappxingProxy object is not subscriptable
+            total += item.get_price() * quantity
         return total
     
        
     
 
-# if __name__ == '__main__':
-#     catalog.items['ABC_DEF_21'] = Item('ABC_DEF_21', 'modified apple', 1.0)  # Raises AttributeError
-#     print(catalog.items['ABC_DEF_21'].get_description())
+if __name__ == '__main__':
+    # catalog.items['ABC_DEF_21'] = Item('ABC_DEF_21', 'modified apple', 1.0)  # Raises AttributeError
+    # print(catalog.items['ABC_DEF_21'].get_description())
+    
+    customer_id = 'ABC12345DE-A' #valid customerID
+    cart = ShoppingCart(customer_id)
+    
+    #test get_id method
+    assert cart.get_id() is not None
+    
+    #test get_customer_id method
+    assert cart.get_customer_id() == customer_id
+    
+    #test get items method with an empty cart 
+    assert cart.get_items() == {}
+    
+    #Add items to the cart 
+    sku1 = 'ABC_DEF_21' #cost = 0.5 per unit
+    sku2 = 'ZZZ_BOB_77' #cost = 10.0 per unit
+    quantity1 = 10 #total cost = 0.5 * 10 = 5.0
+    quantity2 = 5 #total cost = 10.0 * 5 = 50.0
+    
+    cart.add_items(sku1, quantity1)
+    cart.add_items(sku2, quantity2)
+    
+    #test get_items method after adding items 
+    expected_items = {sku1: quantity1, sku2: quantity2}
+    assert cart.get_items() == expected_items
+    
+    #Test updateItemQuantity method 
+    new_quantity = 3
+    cart.updateItemQuantity(sku1, new_quantity)
+    expected_items[sku1] = new_quantity
+    assert cart.get_items() == expected_items
+    
+    #Test removeItem method
+    cart.removeItem(sku2)
+    del expected_items[sku2]
+    assert cart.get_items() == expected_items
+    
+    #Test calculate totalcost method
+    expected_total_cost = (0.5*new_quantity) + (10.0*quantity2)
+    print(f'expected total cost: {expected_total_cost}')
+    print(f'actual total cost: {cart.calculateTotalCost()}')
+    # assert cart.calculateTotalCost() == expected_total_cost
+    

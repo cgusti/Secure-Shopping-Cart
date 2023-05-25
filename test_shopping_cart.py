@@ -251,3 +251,69 @@ def test_immutable_inventory():
 
     with pytest.raises(AttributeError):
         inventory.items.popitem()  # Should raise AttributeError
+
+#Finally, testing shopping cart class
+def test_shopping_cart():
+    customer_id = 'ABC12345DE-A' #valid customerID
+    cart = ShoppingCart(customer_id)
+    
+    #test get_id method
+    assert cart.get_id() is not None
+    
+    #test get_customer_id method
+    assert cart.get_customer_id() == customer_id
+    
+    #test get items method with an empty cart 
+    assert cart.get_items() == {}
+    
+    #Add items to the cart 
+    sku1 = 'ABC_DEF_21' #cost = 0.5 per unit
+    sku2 = 'ZZZ_BOB_77' #cost = 10.0 per unit
+    quantity1 = 10 #total cost = 0.5 * 10 = 5.0
+    quantity2 = 5 #total cost = 10.0 * 5 = 50.0
+    
+    cart.add_items(sku1, quantity1)
+    cart.add_items(sku2, quantity2)
+    
+    #test get_items method after adding items 
+    expected_items = {sku1: quantity1, sku2: quantity2}
+    assert cart.get_items() == expected_items
+    
+    #Test updateItemQuantity method 
+    new_quantity = 3
+    cart.updateItemQuantity(sku1, new_quantity)
+    expected_items[sku1] = new_quantity
+    assert cart.get_items() == expected_items
+    
+    #Test removeItem method
+    cart.removeItem(sku2)
+    del expected_items[sku2]
+    assert cart.get_items() == expected_items
+    
+    #Test calculate totalcost method
+    expected_total_cost = (0.5*new_quantity)
+    assert cart.calculateTotalCost() == expected_total_cost
+    
+def test_shooping_cart_exceptions():
+    customer_id = 'ABC12345DE-A' #valid customerID
+    cart = ShoppingCart(customer_id)
+        
+    #Test add_items with an invalid SKU
+    invalid_sku = 'INVALID_SKU'
+    with pytest.raises(Exception):
+        cart.add_items(invalid_sku, 10)
+        
+    # Test updateItemQuantity method with an invalid SKU
+    with pytest.raises(Exception):
+        cart.updateItemQuantity(invalid_sku, 5)
+        
+     # Test removeItem method with an invalid SKU
+    with pytest.raises(Exception):
+        cart.removeItem(invalid_sku)
+        
+    # Test add_items method with exceptions from dependencies
+    with pytest.raises(Exception):
+        cart.add_items('SKU', 10)
+        
+    with pytest.raises(Exception):
+        cart.removeItem('SKU')
