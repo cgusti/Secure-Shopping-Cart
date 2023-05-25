@@ -27,6 +27,11 @@ def is_sku_format(sku_code):
     match = re.match(pattern, sku_code)
     return match is not None
 
+def contains_only_alphanumeric(string):
+    """Helper function to check if a string is alphanumeric only"""
+    pattern = r'^[a-zA-Z0-9]+$'
+    match = re.match(pattern, string)
+    return match is not None
 
 def is_cid_format(customer_id):
     """Helper function to validate if a given customer id satisfies all requirements 
@@ -57,6 +62,8 @@ def validatedString(value, maxLength=100):
         raise ValueError(f'Value must be no more than {maxLength} characters')
     if value is None: 
         raise TypeError('Need to input string')
+    if not contains_only_alphanumeric(value):
+        raise TypeError('only alphanumeric values are allowed')
     return value
 
 
